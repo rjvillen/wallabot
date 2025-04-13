@@ -171,8 +171,7 @@ def generate_seller_response(message,context={},fuzzy_action=None):
 
 
 def chat(context, simulation):
-    '''Run the chat simulation with the user.
-    product_info: dict with product information (name and price).'''
+    '''Run the chat simulation with the user.'''
     
     n_interactions = 1 # initialize conversation duration to 1
     
@@ -214,9 +213,12 @@ def chat(context, simulation):
         
         print(f"Seller: {response}")
         
-        if fuzzy_action in ["Rechazar","Aceptar"]:
-            print("Ending conversation...")
-            break
+        try:
+            if fuzzy_action in ["Rechazar","Aceptar"]:
+                print("Ending conversation...")
+                break
+        except UnboundLocalError:
+            pass
         
         
 
