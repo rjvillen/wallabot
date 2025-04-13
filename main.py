@@ -5,6 +5,8 @@ import openai
 import os
 from dotenv import load_dotenv
 
+import matplotlib
+
 from utils import *
 # from chatbot import *
 
@@ -81,11 +83,7 @@ def generate_seller_response(message, context={}, fuzzy_action=None, conversatio
 
 
 ### Streamlit App Initialization ###
-# tab1, tab2 = st.tabs(["🤖 Chatbot", "📊 Panel de Control"])
 
-#st.set_page_config(page_title="Wallabot - Chat de Negociación", layout="centered")
-
-# Initialize session state variables on first load.
 if "CONVERSATION" not in st.session_state:
     
     # Define product information.
@@ -99,7 +97,10 @@ if "CONVERSATION" not in st.session_state:
     st.session_state.product_price = product_info['precio_original']
     st.session_state.product_image = product_info['imagen']
     
-    # Initialize conversation history with system prompt
+    st.session_state.last_tono_score = 0
+    st.session_state.last_price_diff = 0
+    st.session_state.last_fuzzy_action = 0
+    
     st.session_state.CONVERSATION = build_system_prompt(product_info)
     
     # Set up fuzzy logic.
@@ -112,75 +113,137 @@ if "CONVERSATION" not in st.session_state:
                                 'ultima_oferta': product_info['precio_original']}
     st.session_state.n_interactions = 1
 
-
-
-### Streamlit Control Panel ###
-# with tab2:
-#     st.title("📊 Panel de Control")
-#     st.markdown("Aquí puedes ver los resultados de la negociación y ajustar los parámetros del sistema difuso.")
-    
-    # Display the fuzzy logic parameters.
-    # st.subheader("Parámetros del Sistema Difuso")
-    # st.write(f"**Tono del Comprador:** {st.session_state.context['tono_score']}")
-    # st.write(f"**Diferencia de Precio:** {st.session_state.context['precio_ofertado']}")
+# Guarda histórico de acciones difusas
+if "history" not in st.session_state:
+    st.session_state.history = []
 
 
 
-### Streamlit Chat Interface ###
+### Streamlit Interface ###
 
-selected_view = st.radio("Ver:", ["🤖 Chat", "📊 Panel de control"], horizontal=True)
+selected_view = st.radio("Vista:", ["🤖 Chat", "📊 Panel de control"], horizontal=True)
 
 if selected_view == "🤖 Chat":
-    # Aquí va el chat, con st.chat_input() al final (funcionará bien)
-elif selected_view == "📊 Panel de control":
-    # Mostrar métricas, gráficas, etc.
-
-st.title("🛍️ Wallabot: Chat de Negociación Inteligente")
-st.markdown(f"**Producto:** {st.session_state.product_name} - 💶 {st.session_state.product_price}€")
-st.image(image=st.session_state.product_image,
-        width=300)
-
-user_message = st.chat_input("Haz tu oferta o pregúntame algo...")
-
-if user_message:
     
-    st.session_state.CONVERSATION.append({"role": "user", "content": user_message})
-    
-    # Check if the message includes a price offer.
-    offered_price = extract_price(user_message)
-    
-    if offered_price is None:
-        # No price found; generate a normal response.
-        response = generate_seller_response(user_message, conversation=st.session_state.CONVERSATION)
-    else:
-        print(st.session_state.context)
-        # Calculate fuzzy parameters.
-        price_difference = (st.session_state.context['precio_original'] - offered_price) / st.session_state.context['precio_original'] * 100
-        tono_score = get_tone_score(user_message)
-        fuzzy_action = compute_fuzzy_action(st.session_state.simulation, tono_score, price_difference, st.session_state.n_interactions)
-        
-        st.session_state.context.update({'precio_ofertado': offered_price})
-        
-        if fuzzy_action == "Contraoferta":
-            st.session_state.context['contraoferta'] = round(min(
-                                                            max(st.session_state.context['precio_original'] * 0.9, (offered_price + st.session_state.context['precio_original']) / 2),
-                                                            st.session_state.context["ultima_oferta"]))
-            
-        response = generate_seller_response(user_message, st.session_state.context, fuzzy_action,
-                                            conversation=st.session_state.CONVERSATION)
-        if fuzzy_action == "Contraoferta":
-            st.session_state.context['ultima_oferta'] = st.session_state.context['contraoferta']
-        
-        st.session_state.n_interactions += 1
-        
-        print(st.session_state.context)
-        
-    st.session_state.CONVERSATION.append({"role": "assistant", "content": response})
+    st.title("🛍️ Wallabot: Chat de Negociación Inteligente")
+    st.markdown(f"**Producto:** {st.session_state.product_name} - 💶 {st.session_state.product_price}€")
+    st.image(image=st.session_state.product_image,
+            width=300)
     
     for msg in st.session_state.CONVERSATION:
-        if msg["role"] == "system":
-            continue 
-        elif msg["role"] == "user":
-            st.chat_message(name="Comprador", avatar="👤").markdown(msg["content"])
-        elif msg["role"] == "assistant":
-            st.chat_message(name="Vendedor", avatar="🤖").markdown(msg["content"])
+            if msg["role"] == "system":
+                continue 
+            elif msg["role"] == "user":
+                st.chat_message(name="Comprador", avatar="👤").markdown(msg["content"])
+            elif msg["role"] == "assistant":
+                st.chat_message(name="Vendedor", avatar="🤖").markdown(msg["content"])
+
+    user_message = st.chat_input("Haz tu oferta o pregúntame algo...")
+
+    if user_message:
+        
+        st.session_state.CONVERSATION.append({"role": "user", "content": user_message})
+        
+        # Check if the message includes a price offer.
+        offered_price = extract_price(user_message)
+        
+        if offered_price is None:
+            # No price found; generate a normal response.
+            response = generate_seller_response(user_message, conversation=st.session_state.CONVERSATION)
+        else:
+            print(st.session_state.context)
+            # Calculate fuzzy parameters.
+            price_difference = (st.session_state.context['precio_original'] - offered_price) / st.session_state.context['precio_original'] * 100
+            tono_score,tono_mappings = get_tone_score(user_message)
+            fuzzy_action,fuzzy_action_value = compute_fuzzy_action(st.session_state.simulation, tono_score, price_difference, st.session_state.n_interactions)
+            
+            # guardar estado para el panel de control
+            st.session_state.last_tono_score = tono_score
+            st.session_state.last_price_diff = price_difference
+            st.session_state.last_fuzzy_action = fuzzy_action
+            st.session_state.tono_mappings = tono_mappings
+            
+            st.session_state.context.update({'precio_ofertado': offered_price})
+            
+            if fuzzy_action == "Contraoferta":
+                st.session_state.context['contraoferta'] = round(min(
+                                                                max(st.session_state.context['precio_original'] * 0.93, (offered_price + st.session_state.context['precio_original']) / 2),
+                                                                st.session_state.context["ultima_oferta"]))
+                
+            response = generate_seller_response(user_message, st.session_state.context, fuzzy_action,
+                                                conversation=st.session_state.CONVERSATION)
+            if fuzzy_action == "Contraoferta":
+                st.session_state.context['ultima_oferta'] = st.session_state.context['contraoferta']
+            
+            st.session_state.history.append({
+                "user_input": user_message,
+                "tone": tono_score,
+                "price_diff": price_difference,
+                "action": fuzzy_action
+            })
+            
+            st.session_state.n_interactions += 1
+            
+            print(st.session_state.context)
+            
+            
+            
+        st.session_state.CONVERSATION.append({"role": "assistant", "content": response})
+        
+        st.rerun()      
+
+elif selected_view == "📊 Panel de control":
+    st.empty()
+    st.title("📊 Panel de Control")
+    
+    # MÉTRICAS
+    st.subheader("Variables de entrada")
+
+    col1, col2 = st.columns(2)
+
+    with col1:
+        st.metric("Tono del mensaje (0 friendly - 10 agressive)", f"{st.session_state.last_tono_score:.2f}")
+       
+        st.metric("Diferencia de precio (%)", f"{st.session_state.last_price_diff:.2f}%")
+        st.metric("Duración (Interacciones)", st.session_state.n_interactions)
+
+    with col2:
+        if "tono_mappings" in st.session_state:
+            st.markdown("**🎨 Desglose del tono**")
+
+            for label, value in st.session_state.tono_mappings.items():
+                st.markdown(f"- `{label.capitalize()}` → **{value:.2f}**")
+        st.metric("Acción difusa", st.session_state.last_fuzzy_action or "No calculada")
+
+    st.divider()
+
+    # FUNCIONES DE PERTENENCIA
+    st.subheader("Funciones de pertenencia")
+
+    input_figs = [get_membership_plot(var,st.session_state.simulation) for var in ["tono", "diferencia", "duracion"]]
+    
+    for title,fig in zip(["Tono del mensaje", "Diferencia relativa de precio", "Duración de la negociación"],input_figs):
+        st.markdown(f"**{title}**")
+        st.pyplot(fig)
+
+    st.markdown("**Resultado del sistema**")
+    output_fig = get_membership_plot("acceptance",st.session_state.simulation)
+    st.pyplot(output_fig)
+
+    st.divider()
+
+    # HISTORIAL DE DECISIONES
+    st.subheader("Histórico de interacciones")
+
+    if "history" in st.session_state and st.session_state.history:
+        for item in reversed(st.session_state.history[-10:]):
+            st.markdown(f"""
+            <div style="padding:8px;border-left:3px solid #2c6e49;margin-bottom:12px;">
+            🧍‍♀️ <strong>Usuario:</strong> {item['user_input']}<br>
+            🎙️ <strong>Tono:</strong> {item['tone']:.2f} — 💸 <strong>Diferencia:</strong> {item['price_diff']:.1f}%<br>
+            🧠 <strong>Acción fuzzy:</strong> <span style="color:#2c6e49;font-weight:bold;">{item['action']}</span>
+            </div>
+            """, unsafe_allow_html=True)
+    else:
+        st.info("No hay interacciones previas registradas.")
+

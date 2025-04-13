@@ -17,7 +17,7 @@ def get_tone_score(message):
     mappings = {label:score for label,score in zip(results["labels"],results['scores'])}
     tono_score = 0*mappings["friendly"] + 5*mappings["neutral"] + 10*mappings["agressive"]
     
-    return tono_score
+    return tono_score,mappings
 
 # extract the offered price
 def extract_price(text):

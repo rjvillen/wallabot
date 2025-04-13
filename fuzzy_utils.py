@@ -4,9 +4,15 @@ from skfuzzy import control as ctrl
 
 from utils import map_action
 
+import matplotlib.pyplot as plt
+
+global tono, diferencia, duracion, acceptance
+
 def setup_fuzzy_logic():
     
     print("Setting up fuzzy logic system...")
+    
+    global tono, diferencia, duracion, acceptance
     
     # Inputs
     tono = ctrl.Antecedent(np.arange(0, 11, 1), 'tono')
@@ -81,9 +87,24 @@ def compute_fuzzy_action(simulation, tono_score, price_difference, n_interaction
 
     simulation.compute()
 
-    fuzzy_action = simulation.output['acceptance']
-    print(f"\nFuzzy action computed: {fuzzy_action}")
-    fuzzy_action = map_action(fuzzy_action)
+    fuzzy_action_value = simulation.output['acceptance']
+    print(f"\nFuzzy action computed: {fuzzy_action_value}")
+    fuzzy_action = map_action(fuzzy_action_value)
     print(f"Mapped to: {fuzzy_action}")
     
-    return fuzzy_action
+    return fuzzy_action,fuzzy_action_value
+
+def get_membership_plot(var,simulation):
+    if var not in ['tono', 'diferencia', 'duracion', 'acceptance']:
+        raise ValueError("Variable must be one of: 'tono', 'diferencia', 'duracion', 'acceptance'")
+    elif var == "acceptance":
+        fig = acceptance.view(sim=simulation) 
+    elif var == "tono":
+        fig = tono.view(sim=simulation)
+    elif var == "diferencia":
+        fig = diferencia.view(sim=simulation)
+    elif var == "duracion":
+        fig = duracion.view(sim=simulation)
+    
+    fig = plt.gcf()
+    return fig
