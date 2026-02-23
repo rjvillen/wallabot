@@ -8,18 +8,17 @@ pipe = pipeline("zero-shot-classification",
 def get_tone_score(message):
 
     results = pipe(message,
-        # candidate_labels=["friendly, collaborative", "neutral", "agressive, rude, insistent"],
-        candidate_labels=["friendly", "neutral", "agressive"],
+        candidate_labels=["friendly, collaborative", "neutral", "agressive, rude"],
+        # candidate_labels=["colaborativo/amable", "neutral", "agresivo/grosero"],
     )
 
     print(results)
 
     mappings = {label:score for label,score in zip(results["labels"],results['scores'])}
-    tono_score = 0*mappings["friendly"] + 5*mappings["neutral"] + 10*mappings["agressive"]
+    tono_score = 0*mappings["friendly, collaborative"] + 5*mappings["neutral"] + 10*mappings["agressive, rude"]
     
     return tono_score,mappings
 
-# extract the offered price
 def extract_price(text):
     """
     Extracts a price from a given text string.
@@ -46,7 +45,7 @@ def extract_price(text):
     
     match = re.search(pattern, text, re.IGNORECASE)
     if match:
-        # Replace comma with dot if comma is used for decimals
+        # replace comma with dot if comma is used for decimals
         num_str = match.group(1).replace(",", ".")
         try:
             return float(num_str)
@@ -54,7 +53,6 @@ def extract_price(text):
             return None
     else:
         return None
-
 
 def map_action(accion):
     if accion <= 20:
@@ -69,4 +67,4 @@ def map_action(accion):
 if __name__ == "__main__":
     number = "Te lo compro por 5 pavos si te parece bien"
     extracted_price = extract_price(number)
-    print(f"Extracted price: {extracted_price}")  # Output: 1234.56
+    print(f"Extracted price: {extracted_price}") 

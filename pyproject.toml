@@ -1,0 +1,17 @@
+[project]
+name = "idif-bot"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "dotenv>=0.9.9",
+    "networkx>=3.4.2",
+    "numpy>=2.2.4",
+    "openai>=1.73.0",
+    "scikit-fuzzy>=0.5.0",
+    "scipy>=1.15.2",
+    "streamlit>=1.44.1",
+    "torch>=2.6.0",
+    "transformers>=4.51.2",
+]

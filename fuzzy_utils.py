@@ -8,6 +8,13 @@ import matplotlib.pyplot as plt
 
 global tono, diferencia, duracion, acceptance
 
+ACTION_BY_LABEL = {
+    'muy_bajo' : "Rechazar",
+    'bajo'     : "Mantener",
+    'alto'     : "Contraoferta",
+    'muy_alto' : "Aceptar"
+}
+
 def setup_fuzzy_logic():
     
     print("Setting up fuzzy logic system...")
@@ -27,15 +34,15 @@ def setup_fuzzy_logic():
     diferencia['media'] = fuzz.trapmf(diferencia.universe, [5, 10, 15, 20])
     diferencia['alta'] = fuzz.trapmf(diferencia.universe, [15, 20, 100, 100])
 
-    duracion['corta'] = fuzz.trapmf(duracion.universe, [0, 2, 3, 4])
+    duracion['corta'] = fuzz.trapmf(duracion.universe, [0, 0, 2, 4])
     duracion['media'] = fuzz.trapmf(duracion.universe, [3, 4, 6, 7])
     duracion['larga'] = fuzz.trapmf(duracion.universe, [6, 8, 15, 15])
 
     # Outputs
-    acceptance = ctrl.Consequent(np.arange(0, 101, 1), 'acceptance')
+    acceptance = ctrl.Consequent(np.arange(0, 101, 1), 'acceptance', defuzzify_method='mom')
 
     acceptance['muy_bajo'] = fuzz.trimf(acceptance.universe, [0, 0, 25]) # -> Rechazar (terminar negociación)
-    acceptance['bajo'] = fuzz.trimf(acceptance.universe, [15, 40, 55]) # -> Mantener el precio (seguir negociando)
+    acceptance['bajo'] = fuzz.trimf(acceptance.universe, [15, 35, 55]) # -> Mantener el precio (seguir negociando)
     acceptance['alto'] = fuzz.trimf(acceptance.universe, [45, 65, 85]) # -> Ofrecer contraoferta (seguir negociando)
     acceptance['muy_alto'] = fuzz.trimf(acceptance.universe, [75, 100, 100]) # -> Aceptar (cerrar trato)
 
@@ -87,12 +94,20 @@ def compute_fuzzy_action(simulation, tono_score, price_difference, n_interaction
 
     simulation.compute()
 
-    fuzzy_action_value = simulation.output['acceptance']
-    print(f"\nFuzzy action computed: {fuzzy_action_value}")
-    fuzzy_action = map_action(fuzzy_action_value)
-    print(f"Mapped to: {fuzzy_action}")
+    crisp = simulation.output['acceptance']
+    idx   = int(round(crisp))
+
+    best_label = max(
+    acceptance.terms,
+    key=lambda lab: acceptance.terms[lab].mf[idx])
     
-    return fuzzy_action,fuzzy_action_value
+    best_action = ACTION_BY_LABEL[best_label]
+
+    print(f"Crisp value: {crisp:.2f} → index {idx}")
+    print("Pertenencias en ese punto:",{lab: acceptance.terms[lab].mf[idx] for lab in acceptance.terms})
+    print(f"Ganador: {best_label} → {best_action}")
+
+    return best_action, crisp
 
 def get_membership_plot(var,simulation):
     if var not in ['tono', 'diferencia', 'duracion', 'acceptance']:

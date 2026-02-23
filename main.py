@@ -82,16 +82,21 @@ def generate_seller_response(message, context={}, fuzzy_action=None, conversatio
     return response_content
 
 
-### Streamlit App Initialization ###
+# Streamlit App Initialization
 
 if "CONVERSATION" not in st.session_state:
     
-    # Define product information.
     product_info = {
         'nombre_producto': 'Patinete Eléctrico',
         'precio_original': 250,
         'imagen': 'https://images.unsplash.com/photo-1614226170075-d338afcd9c53?q=80&w=2080&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
     }
+    
+    # product_info = {
+    #     'nombre_producto': 'Juego de Nintendo',
+    #     'precio_original': 70,
+    #     'imagen': 'https://www.mujeresaseguir.com/siteresources/files/847/86.webp',
+    # }
     
     st.session_state.product_name = product_info['nombre_producto']
     st.session_state.product_price = product_info['precio_original']
@@ -103,23 +108,23 @@ if "CONVERSATION" not in st.session_state:
     
     st.session_state.CONVERSATION = build_system_prompt(product_info)
     
-    # Set up fuzzy logic.
+    # Set up fuzzy logic
     negotiation_ctrl, simulation = setup_fuzzy_logic()
     st.session_state.negotiation_ctrl = negotiation_ctrl
     st.session_state.simulation = simulation
     
-    # Context stores negotiation info.
+    # Context stores negotiation info
     st.session_state.context = {'precio_original': product_info['precio_original'],
                                 'ultima_oferta': product_info['precio_original']}
     st.session_state.n_interactions = 1
 
-# Guarda histórico de acciones difusas
+# guarda histórico de acciones difusas
 if "history" not in st.session_state:
     st.session_state.history = []
 
 
 
-### Streamlit Interface ###
+### Interface ###
 
 selected_view = st.radio("Vista:", ["🤖 Chat", "📊 Panel de control"], horizontal=True)
 
@@ -134,7 +139,7 @@ if selected_view == "🤖 Chat":
             if msg["role"] == "system":
                 continue 
             elif msg["role"] == "user":
-                st.chat_message(name="Comprador", avatar="👤").markdown(msg["content"])
+                st.chat_message(name="Comprador", avatar="🥸").markdown(msg["content"])
             elif msg["role"] == "assistant":
                 st.chat_message(name="Vendedor", avatar="🤖").markdown(msg["content"])
 
@@ -144,7 +149,7 @@ if selected_view == "🤖 Chat":
         
         st.session_state.CONVERSATION.append({"role": "user", "content": user_message})
         
-        # Check if the message includes a price offer.
+        # Check if the message includes a price offer
         offered_price = extract_price(user_message)
         
         if offered_price is None:
@@ -152,7 +157,7 @@ if selected_view == "🤖 Chat":
             response = generate_seller_response(user_message, conversation=st.session_state.CONVERSATION)
         else:
             print(st.session_state.context)
-            # Calculate fuzzy parameters.
+            # fuzzy parameters.
             price_difference = (st.session_state.context['precio_original'] - offered_price) / st.session_state.context['precio_original'] * 100
             tono_score,tono_mappings = get_tone_score(user_message)
             fuzzy_action,fuzzy_action_value = compute_fuzzy_action(st.session_state.simulation, tono_score, price_difference, st.session_state.n_interactions)
@@ -209,7 +214,7 @@ elif selected_view == "📊 Panel de control":
 
     with col2:
         if "tono_mappings" in st.session_state:
-            st.markdown("**🎨 Desglose del tono**")
+            st.markdown("**Desglose del tono**")
 
             for label, value in st.session_state.tono_mappings.items():
                 st.markdown(f"- `{label.capitalize()}` → **{value:.2f}**")
