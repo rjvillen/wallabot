@@ -21,7 +21,7 @@ def get_tone_score(message):
 
 def extract_price(text):
     """
-    Extracts a price from a given text string.
+    Extracts a price from a text.
     
     The regex pattern looks for an optional currency symbol (€, $, £)
     or words (bucks, dollars, euros) that can appear immediately
@@ -45,7 +45,7 @@ def extract_price(text):
     
     match = re.search(pattern, text, re.IGNORECASE)
     if match:
-        # replace comma with dot if comma is used for decimals
+        # replace comma with dot if comma is used for decimals (for example in Spanish text)
         num_str = match.group(1).replace(",", ".")
         try:
             return float(num_str)

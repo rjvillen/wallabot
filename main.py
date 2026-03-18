@@ -8,7 +8,6 @@ from dotenv import load_dotenv
 import matplotlib
 
 from utils import *
-# from chatbot import *
 
 load_dotenv()
 
@@ -86,6 +85,7 @@ def generate_seller_response(message, context={}, fuzzy_action=None, conversatio
 
 if "CONVERSATION" not in st.session_state:
     
+    # just some random product for testing
     product_info = {
         'nombre_producto': 'Patinete Eléctrico',
         'precio_original': 250,
@@ -111,14 +111,14 @@ if "CONVERSATION" not in st.session_state:
     # Set up fuzzy logic
     negotiation_ctrl, simulation = setup_fuzzy_logic()
     st.session_state.negotiation_ctrl = negotiation_ctrl
-    st.session_state.simulation = simulation
+    st.session_state.simulation = simulation # ControlSystemSimulation instance from skfuzzy library
     
     # Context stores negotiation info
     st.session_state.context = {'precio_original': product_info['precio_original'],
                                 'ultima_oferta': product_info['precio_original']}
     st.session_state.n_interactions = 1
 
-# guarda histórico de acciones difusas
+# saves history of fuzzy actions
 if "history" not in st.session_state:
     st.session_state.history = []
 
@@ -162,7 +162,7 @@ if selected_view == "🤖 Chat":
             tono_score,tono_mappings = get_tone_score(user_message)
             fuzzy_action,fuzzy_action_value = compute_fuzzy_action(st.session_state.simulation, tono_score, price_difference, st.session_state.n_interactions)
             
-            # guardar estado para el panel de control
+            # save state for the control panel view
             st.session_state.last_tono_score = tono_score
             st.session_state.last_price_diff = price_difference
             st.session_state.last_fuzzy_action = fuzzy_action
@@ -201,7 +201,7 @@ elif selected_view == "📊 Panel de control":
     st.empty()
     st.title("📊 Panel de Control")
     
-    # MÉTRICAS
+    # METRICS
     st.subheader("Variables de entrada")
 
     col1, col2 = st.columns(2)
@@ -222,7 +222,7 @@ elif selected_view == "📊 Panel de control":
 
     st.divider()
 
-    # FUNCIONES DE PERTENENCIA
+    # DISPLAY MEMBERSHIP FUNCTIONS
     st.subheader("Funciones de pertenencia")
 
     input_figs = [get_membership_plot(var,st.session_state.simulation) for var in ["tono", "diferencia", "duracion"]]
@@ -237,7 +237,7 @@ elif selected_view == "📊 Panel de control":
 
     st.divider()
 
-    # HISTORIAL DE DECISIONES
+    # DECISION HISTORY
     st.subheader("Histórico de interacciones")
 
     if "history" in st.session_state and st.session_state.history:
