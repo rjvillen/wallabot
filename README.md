@@ -43,7 +43,8 @@ The chatbot's behavior is controlled by a fuzzy inference system.
 * **Conversation Duration:** The total number of user-bot interactions.
 * **User's Tone:** (Friendly, Neutral, or Aggressive). I used the [bart-large-mnli](https://huggingface.co/facebook/bart-large-mnli) zero-shot classification model to determine the probability distribution of the three classes. The tone score is then calculated as:
     $$Tone = 0 \cdot P(\text{"Friendly"}) + 5 \cdot P(\text{"Neutral"}) + 10 \cdot P(\text{"Aggressive"})$$
-    0 indicates a friendly tone, while values closer to 10 represent higher aggression.
+
+  0 indicates a friendly tone, while values closer to 10 represent higher aggression.
 * **Price difference:** User's price offer is extracted from the user's message using regular expressions and then compared to the original price to calculate the relative difference (%).
 ### Fuzzy Outputs
 The output is the **Degree of Acceptance**. Depending on this degree, a specific strategy is selected and injected into the system prompt:
