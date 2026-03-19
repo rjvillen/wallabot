@@ -1,79 +1,87 @@
 # Wallabot
+
 A chatbot expert in second-hand item price negotiation based on fuzzy logic.
 
-This project is a proof of concept designed for a class assigment for the IDIF subject (Modelling with uncertainity, fuzzy logic and soft computing) within the [TECI Master degree](https://blogs.mat.ucm.es/teci/) from Polytechnic University of Madrid and the Complutense University of Madrid. For this reason, although the documentation are code are in english, the interface and prompts are written in spanish. Sorry for the inconvenience!
+This project is a proof of concept designed for a class assigment for the IDIF subject (Modelling with uncertainity, Fuzzy Logic and Soft Computing) within the [TECI Master degree](https://blogs.mat.ucm.es/teci/) from the Polytechnic University of Madrid and the Complutense University of Madrid. 
 
-![Chat UI](img/chat_UI.png)
-![Control Panel](img/control_panel.png)
-![Membership Functions](img/membership_functions.png)
+> [!IMPORTANT]
+> **Legal Disclaimer:** This project is purely academic and educational. Wallabot is not affiliated with, sponsored by, or related to Wallapop S.L. in any way.
 
-legal disclaimer: The purpose of this project is purely academic and educational. Wallabot no tiene ninguna relación, afiliación ni patrocinio de Wallapop S.L.
+> [!NOTE]
+> Although the documentation and code are in English, the interface and prompts are written in Spanish since this was the language for the lecture. Sorry for the inconvenience!
+
+
+<p align="center">
+  <img src="img/chat_UI.png" width="70%" alt="Chat UI" />
+  <br>
+  <em>Chatbot UI</em>
+</p>
+
+<p align="center">
+  <img src="img/control_panel.png" width="50%" alt="Control Panel" />
+  <img src="img/membership_functions.png" width="47%" alt="Membership Functions" />
+  <br>
+  <em>Control Panel: Main Control Panel (left) and Membership Function (right)</em>
+</p>
+
 
 ## Set Up
 
 1. Create a ``.env`` file following the structure in ``example.env`` and add your OpenAI API token. If you don't have one you can easily create one [here](https://developers.openai.com/api/docs/quickstart).
 
-2. Run the app with uv:
-```
+2. Run the app with ``uv``:
+```bash
 uv run streamlit run main.py
 ```
-3. Access the app in http://localhost:8501 and enjoy negotiating 🥸$$.
+3. Access the app in http://localhost:8501 and enjoy the haggling! 🥸$$.
 
-## Bot's behaviour explainer
+## How it Works: Fuzzy Logic System
 
-The chatbot's behaviour is controlled by fuzzy logic.
+The chatbot's behavior is controlled by a fuzzy inference system.
 
-Fuzzy inputs:
-- Conversation duration: The number of user-bot interactions.
-- User's tone (friendly, neutral or agressive). I use a zero shot text classification model ([bart-large-mnli](https://huggingface.co/facebook/bart-large-mnli)) to compute the probability distribution for each of the 3 classes and then compute the score with the functoin Tono = 0 x P(“Friendly”) + 5 x P(“Neutral”) + 10 x P(“Agressive). Thus, 0 indicates friendly tone and values closer to 10 indicate more agressive tone.
-- Price: Simply extracted from the user's message using regular expressions.
+### Fuzzy Inputs
+* **Conversation Duration:** The total number of user-bot interactions.
+* **User's Tone:** (Friendly, Neutral, or Aggressive). I used the [bart-large-mnli](https://huggingface.co/facebook/bart-large-mnli) zero-shot classification model to determine the probability distribution of the three classes. The tone score is then calculated as:
+    $$Tone = 0 \cdot P(\text{"Friendly"}) + 5 \cdot P(\text{"Neutral"}) + 10 \cdot P(\text{"Aggressive"})$$
+    0 indicates a friendly tone, while values closer to 10 represent higher aggression.
+* **Price difference:** User's price offer is extracted from the user's message using regular expressions and then compared to the original price to calculate the relative difference (%).
+### Fuzzy Outputs
+The output is the **Degree of Acceptance**. Depending on this degree, a specific strategy is selected and injected into the system prompt:
 
-Fuzzy outputs:
+* **Very High:** Accept offer.
+* **High:** Make a counteroffer.
+* **Low:** Maintain the current price.
+* **Very Low:** Reject the offer and end the negotiation.
 
-The fuzzy output is the ddegree of acceptance. Depending on the degree of acceptance one strategy or another will be selected and inyected in the system prompt.
+### Rules
+The rules were defined following well-known negotiation principles (inspired by works like Dale Carnegie's *How to Win Friends and Influence People*), such as *"Never reward aggression with concessions"* and *"Prioritize good faith and mutual benefit"*. The following table displays the 17 rules that define the chatbot's decision making:
 
-- Very high: Accept offer
-- High: Counteroffer
-- Low: Mantain the price
-- Verly low: Reject offer and end negotiating 
-
-
-Rules:
-I defined the rules following well known negotiationg principles from works such as how to make friends and influence people from Dale Carneige such as "Nunca recompenses la agresividad con concesiones.", "Buena fe y búsqueda de beneficio mutuo". The following table shows the 17 rules I defined.
-
-
-| Tono del Comprador | Diferencia Relativa de Precio | Duración de Negociación | Acción |
-|---------------------|------------------------------|-----------------------------------------|-----|
-| Amigable           | Baja                         | Corta                                   | Aceptar |
-| Amigable           | Baja                         | Media                                   | Aceptar |
-| Amigable           | Baja                         | Larga                                   | Contraoferta |
-| Amigable           | Media                        | Corta                                   | Contraoferta |
-| Amigable           | Media                        | Media                                   | Contraoferta |
-| Amigable           | Media                        | Larga                                   | Mantener |
-| Amigable           | Alta                         | Corta                                   | Contraoferta |
-| Amigable           | Alta                         | Media                                   | Mantener |
-| Amigable           | Alta                         | Larga                                   | Rechazar |
-| Neutral            | Baja                         | Corta                                   | Aceptar |
-| Neutral            | Baja                         | Media                                   | Aceptar |
-| Neutral            | Baja                         | Larga                                   | Contraoferta |
-| Neutral            | Media                        | Corta                                   | Contraoferta |
-| Neutral            | Media                        | Media                                   | Mantener |
-| Neutral            | Media                        | Larga                                   | Mantener |
-| Neutral            | Alta                         | Corta                                   | Mantener |
-| Neutral            | Alta                         | Media                                   | Mantener |
-| Neutral            | Alta                         | Larga                                   | Mantener |
-| Agresivo           | Baja                         | Corta                                   | Mantener |
-| Agresivo           | Baja                         | Media                                   | Mantener |
-| Agresivo           | Baja                         | Larga                                   | Rechazar |
-| Agresivo           | Media                        | Corta                                   | Mantener |
-| Agresivo           | Media                        | Media                                   | Mantener |
-| Agresivo           | Media                        | Larga                                   | Rechazar |
-| Agresivo           | Alta                         | Corta                                   | Rechazar |
-| Agresivo           | Alta                         | Media                                   | Rechazar |
-| Agresivo           | Alta                         | Larga                                   | Rechazar |
-
-
-to do idif
-- repasar la documentación, dejarla bien escrita y bonita
-- licencia
-- cambiar nombre por wallabot
+| Buyer's Tone | Relative Price Difference | Negotiation Duration | Action |
+|:---:|:---:|:---:|:---:|
+| Friendly | Low | Short | Accept |
+| Friendly | Low | Medium | Accept |
+| Friendly | Low | Long | Counteroffer |
+| Friendly | Medium | Short | Counteroffer |
+| Friendly | Medium | Medium | Counteroffer |
+| Friendly | Medium | Long | Maintain |
+| Friendly | High | Short | Counteroffer |
+| Friendly | High | Medium | Maintain |
+| Friendly | High | Long | Reject |
+| Neutral | Low | Short | Accept |
+| Neutral | Low | Medium | Accept |
+| Neutral | Low | Long | Counteroffer |
+| Neutral | Medium | Short | Counteroffer |
+| Neutral | Medium | Medium | Maintain |
+| Neutral | Medium | Long | Maintain |
+| Neutral | High | Short | Maintain |
+| Neutral | High | Medium | Maintain |
+| Neutral | High | Long | Maintain |
+| Aggressive | Low | Short | Maintain |
+| Aggressive | Low | Medium | Maintain |
+| Aggressive | Low | Long | Reject |
+| Aggressive | Medium | Short | Maintain |
+| Aggressive | Medium | Medium | Maintain |
+| Aggressive | Medium | Long | Reject |
+| Aggressive | High | Short | Reject |
+| Aggressive | High | Medium | Reject |
+| Aggressive | High | Long | Reject |

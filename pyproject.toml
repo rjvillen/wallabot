@@ -1,7 +1,7 @@
 [project]
 name = "idif-bot"
 version = "0.1.0"
-description = "Add your description here"
+description = "A chatbot expert in second-hand item price negotiation based on fuzzy logic."
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
